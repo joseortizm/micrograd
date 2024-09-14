@@ -1,3 +1,4 @@
+import math # for exp()
 
 class Value:
     """ stores a single scalar value and its gradient """
@@ -50,6 +51,17 @@ class Value:
         out._backward = _backward
 
         return out
+
+    # add exp() for check.py
+    def exp(self):
+      x = self.data
+      out = Value(math.exp(x), (self, ), 'exp')
+    
+      def _backward():
+        self.grad += out.data * out.grad  
+      out._backward = _backward
+    
+      return out
 
     def backward(self):
 
