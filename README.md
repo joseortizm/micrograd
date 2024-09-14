@@ -1,7 +1,7 @@
 #### obs
 
-- Este repositorio es un Fork de exprimentos sobre [micrograd](https://github.com/karpathy/micrograd) de Karpathy. 
-- Si quieres explicación a detalle, en castellano, de como lo construyó Karpathy, lo encuentras en mi repositorio [ai-notebooks](https://github.com/joseortizm/ai-notebooks).
+- Este repositorio es un Fork de experimentos sobre [micrograd](https://github.com/karpathy/micrograd) de Karpathy. 
+- Si quieres explicación a detalle, en castellano, de como lo construyó Karpathy, lo encuentras en mi repositorio [ai-notebooks](https://github.com/joseortizm/ai-notebooks): micrograd_karpathy.ipynb
 
 # micrograd
 
