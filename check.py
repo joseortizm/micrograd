@@ -71,6 +71,7 @@ class Linear:
         self.status_bias = bias
         limit = np.sqrt(6 / (in_features + out_features))
         self.weights = Value(np.random.uniform(-limit, limit, (out_features, in_features)))
+        print("-----")
         print("weights:")
         print(self.weights)
         self.bias = Value(np.zeros(out_features))
@@ -86,28 +87,44 @@ class Linear:
     def __repr__(self):
         return f"Linear(in_features={self.in_features}, out_features={self.out_features}, bias={self.status_bias})"
 
-def linear_regression():
+class MSELoss():
+    def forward(self, y_true, y_pred):
+        #todo: is istance and isnt istance
+        y_true = np.array(y_true.data)
+        y_pred = np.array(y_pred.data)
+        output = np.mean((y_true-y_pred)**2)
+        return output 
+    
+    def __call__(self, y_true, y_pred):
+        return self.forward(y_true, y_pred)
+    
+    def __repr__(self):
+        return("MSELoss()")
+
+def loss_example():
     x, y = make_regression(n_samples=10, n_features=1, noise=10, random_state=0)
     x = np.interp(x, (x.min(), x.max()), (10, 20))
     y = np.interp(y, (y.min(), y.max()), (5, 15))
     xTrain, xTest, yTrain, yTest = train_test_split(x, y, test_size=0.3, random_state=0)   
     print(xTrain)
     print(yTrain) 
-    inputs = Value(xTrain)
-    print(inputs)
     linear_layer = Linear(1, 1)
-    print(linear_layer)
-    outputs = linear_layer(inputs)
-    print("outputs:")
-    print(outputs)
+    outputs_ = linear_layer(xTrain) #is Value
+    print("type(outputs_):",type(outputs_))
+    yTrain_ = yTrain.reshape(7,1)
+    print(type(yTrain_)) #np.array
+    criterion = MSELoss()
+    loss = criterion(Value(yTrain_), outputs_) #Value, Value
+    #loss = criterion(yTrain_, outputs_) #np.array, np.array
+    print("MESLoss:")
+    print(loss)
+
+loss_example()
 
 
 
 
-
-linear_regression()
     
-
 
 
 

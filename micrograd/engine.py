@@ -1,4 +1,5 @@
 import math # for exp()
+import numpy as np
 
 class Value:
     """ stores a single scalar value and its gradient """
@@ -63,6 +64,19 @@ class Value:
     
       return out
 
+    def shape(self):
+        x = self.data
+        return x.shape
+
+    #def flatten(self):
+    #    x = self.data
+    #    x_ = x.flatten()
+    #    return x_
+
+    def reshape(self,a, b):
+        x = self.data
+        return x.reshape(a,b)
+
     def backward(self):
 
         # topological order all of the children in the graph
@@ -97,7 +111,8 @@ class Value:
         return self * other
 
     def __truediv__(self, other): # self / other
-        return self * other**-1
+        #return self * other**-1
+        return self * float(other)**-1
 
     def __rtruediv__(self, other): # other / self
         return other * self**-1
