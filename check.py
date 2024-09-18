@@ -5,6 +5,13 @@ from micrograd.engine import Value
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 import numpy as np 
+from sklearn.datasets import make_moons, make_blobs
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import matplotlib.pyplot as plt
+
 
 def readme_example():
     #original of readme
@@ -109,29 +116,126 @@ def loss_example():
     print(xTrain)
     print(yTrain) 
     linear_layer = Linear(1, 1)
-    outputs_ = linear_layer(xTrain) #is Value
-    print("type(outputs_):",type(outputs_))
+    outputs_ = linear_layer(xTrain)
+    #print("type(outputs_):",type(outputs_)) #is Value
     yTrain_ = yTrain.reshape(7,1)
-    print(type(yTrain_)) #np.array
+    #print(type(yTrain_)) #np.array
     criterion = MSELoss()
     loss = criterion(Value(yTrain_), outputs_) #Value, Value
     #loss = criterion(yTrain_, outputs_) #np.array, np.array
     print("MESLoss:")
     print(loss)
 
-loss_example()
+#loss_example()
 
+from sklearn.datasets import make_moons, make_blobs
 
-
-
+def demo_example():
+    # make up a dataset
+    X, y = make_moons(n_samples=10, noise=0.1)
+    print(y)
+    y = y*2 - 1 # make y be -1 or 1
+    print(X)
+    print(y)
     
+#demo_example()
 
+def demo_pytorch():
+    # Generar el dataset
+    X, y = make_moons(n_samples=100, noise=0.1)
+    y = y * 2 - 1  # Convertir a -1 o 1
 
+    # Convertir a tensores de PyTorch
+    X_tensor = torch.FloatTensor(X)
+    y_tensor = torch.FloatTensor(y).view(-1, 1)  # Cambiar la forma para que sea 2D
 
+    # Dividir en conjuntos de entrenamiento y prueba
+    X_train, X_test, y_train, y_test = train_test_split(X_tensor, y_tensor, test_size=0.2, random_state=42)
 
+    # Definir el modelo
+    class MLP(nn.Module):
+        def __init__(self, nin, nouts):
+            super(MLP, self).__init__()
+            sz = [nin] + nouts
+            self.layers = nn.ModuleList([nn.Linear(sz[i], sz[i + 1]) for i in range(len(nouts))])
 
+        def forward(self, x):
+            for i, layer in enumerate(self.layers):
+                x = layer(x)
+                if i != len(self.layers) - 1:  # Aplicar ReLU solo en capas ocultas
+                    x = torch.relu(x)
+            return x
 
+    model = MLP(2, [16, 16, 1])  # Red neuronal de 2 capas ocultas
+    print(model)
+    print("Número de parámetros:", sum(p.numel() for p in model.parameters()))
 
+    # Función de pérdida
+    def loss(batch_size=None):
+        if batch_size is None:
+            Xb, yb = X_train, y_train
+        else:
+            ri = np.random.permutation(X_train.shape[0])[:batch_size]
+            Xb, yb = X_train[ri], y_train[ri]
 
+        # Forward
+        scores = model(Xb)
 
+        # Pérdida SVM "max-margin"
+        losses = (1 + -yb * scores).clamp(min=0)  # ReLU
+        data_loss = losses.mean()
+
+        # Regularización L2
+        alpha = 1e-4
+        reg_loss = alpha * sum((p**2).sum() for p in model.parameters())
+
+        total_loss = data_loss + reg_loss
+
+        # Precisión
+        accuracy = ((yb > 0) == (scores > 0)).float().mean()
+        return total_loss, accuracy
+
+    # Entrenamiento
+    for k in range(100):
+        # Forward
+        total_loss, acc = loss()
+
+        # Backward
+        model.zero_grad()
+        total_loss.backward()
+
+        # Actualización (SGD)
+        learning_rate = 1.0 - 0.9 * k / 100
+        for p in model.parameters():
+            p.data -= learning_rate * p.grad
+
+        if k % 1 == 0:
+            print(f"Paso {k} - Pérdida {total_loss.item():.4f}, Precisión {acc.item() * 100:.2f}%")
+
+    # Visualizar la frontera de decisión
+    h = 0.25
+    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
+    Xmesh = torch.FloatTensor(np.c_[xx.ravel(), yy.ravel()])  # Convertir a tensor de PyTorch
+
+    # Hacer predicciones
+    with torch.no_grad():
+        scores = model(Xmesh)
+        Z = (scores > 0).numpy()  # Convertir a numpy y aplicar la clasificación
+
+    Z = Z.reshape(xx.shape)
+
+    # Crear el gráfico
+    fig = plt.figure()
+    plt.contourf(xx, yy, Z, cmap=plt.cm.Spectral, alpha=0.8)
+    plt.scatter(X[:, 0], X[:, 1], c=y, s=40, cmap=plt.cm.Spectral)
+    plt.xlim(xx.min(), xx.max())
+    plt.ylim(yy.min(), yy.max())
+    plt.title('Decision Boundary')
+    plt.xlabel('Feature 1')
+    plt.ylabel('Feature 2')
+    plt.show()
+
+demo_pytorch()
 
