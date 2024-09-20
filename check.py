@@ -12,7 +12,6 @@ import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
 
-
 def readme_example():
     #original of readme
     a = Value(-4.0)
@@ -104,7 +103,19 @@ class MSELoss():
     
     def __call__(self, y_true, y_pred):
         return self.forward(y_true, y_pred)
-    
+
+    #TODO backward
+    def backward(self):
+        """
+        Calcula el gradiente de la pérdida con respecto a las predicciones.
+        
+        :return: Gradiente de la pérdida
+        """
+        n = self.y_true.shape[0]
+        # Gradiente: -2 * (y_true - y_pred) / n
+        return -2 * (self.y_true - self.y_pred) / n
+
+
     def __repr__(self):
         return("MSELoss()")
 
@@ -125,10 +136,12 @@ def loss_example():
     #loss = criterion(yTrain_, outputs_) #np.array, np.array
     print("MESLoss:")
     print(loss)
+    loss = Value(loss)
+    loss.backward()
+    print(yTrain_.grad) #TODO a Value(): attributeError: 'numpy.ndarray' object has no attribute 'grad'
 
 #loss_example()
 
-from sklearn.datasets import make_moons, make_blobs
 
 def demo_example():
     # make up a dataset
@@ -237,5 +250,149 @@ def demo_pytorch():
     plt.ylabel('Feature 2')
     plt.show()
 
-demo_pytorch()
+#demo_pytorch()
+
+
+def linearRegression_Value():
+    # Generar datos de regresión
+    x, y = make_regression(n_samples=1000, n_features=1, noise=10, random_state=0) 
+    #n_samples > 100000: in build_topo visited.add(v) RecursionError: maximum recursion depth exceeded while calling a Python object
+    xTrain, xTest, yTrain, yTest = train_test_split(x, y, test_size=0.3, random_state=0)
+
+    # Normalizar datos (Min-Max)
+    def normalize(data):
+        return (data - np.min(data)) / (np.max(data) - np.min(data))
+
+    xTrain_norm = normalize(xTrain)
+    xTest_norm = normalize(xTest)
+    yTrain_norm = normalize(yTrain)
+    yTest_norm = normalize(yTest)
+
+    # Clase para la regresión lineal
+    class LinearRegression:
+        def __init__(self):
+            self.w = Value(np.random.randn())  # Peso
+            self.b = Value(np.random.randn())  # Sesgo
+
+        def forward(self, x):
+            return x * self.w + self.b
+
+    # Función de pérdida (MSE)
+    def mse_loss(y_pred, y_true):
+        return sum((y_pred[i] - y_true[i]) ** 2 for i in range(len(y_pred))) / len(y_pred)
+
+    # Clase para el optimizador SGD
+    class SGD:
+        def __init__(self, params, lr=0.01):
+            self.params = params
+            self.lr = lr
+
+        def step(self):
+            for param in self.params:
+                param.data -= self.lr * param.grad
+                param.grad = 0  # Resetear gradiente después de la actualización
+
+    # Inicializar el modelo y el optimizador
+    model = LinearRegression()
+    optimizer = SGD([model.w, model.b], lr=0.1)
+    epochs = 100 #earlystop podriamos aplicar en 15 segun grafica del error; comparaciones si modifico lr y spochs
+    losses = []
+
+    #TODO early stopping
+    #patience_counter = 0
+    #patience = 10
+    #best_loss = float('inf')
+
+    # Entrenamiento
+    for epoch in range(epochs):
+        epoch += 1
+
+        # Convertir datos a valores de Micrograd
+        inputs = np.array([Value(float(i)) for i in xTrain_norm.flatten()])
+        labels = np.array([Value(float(i)) for i in yTrain_norm.flatten()])
+
+        # Forward pass
+        predictions = np.array([model.forward(x) for x in inputs])
+
+        # Calcular pérdida
+        loss = mse_loss(predictions, labels)
+        losses.append(loss)
+
+        # Backward pass
+        loss.backward()
+
+        # Actualizar parámetros
+        optimizer.step()
+
+        print(f'Epoch: {epoch} | Loss: {loss.data}')
+
+        #TODO -> Early stopping
+        #if loss.data < best_loss:
+        #    best_loss = loss.data
+        #    patience_counter = 0  # Reiniciar contador
+        #else:
+        #    patience_counter += 1
+        #
+        #if patience_counter >= patience:
+        #    print("Early stopping activated.")
+        #    break
+#
+    # Predicción en el conjunto de prueba
+    test_inputs = np.array([Value(float(i)) for i in xTest_norm.flatten()])
+    test_predictions = np.array([model.forward(x) for x in test_inputs])
+
+    # Mostrar resultados (opcional)
+    #for i in range(len(xTest)):
+    #    print(f'Input: {xTest[i][0]} | Predicción: {test_predictions[i].data} | Verdadero: {yTest_norm[i]}')
+    
+    print("model.w.data: ",model.w.data) 
+    print("model.b.data:", model.b.data) 
+   
+    ## Graficar resultados
+    
+    # Definir los parámetros de la recta
+    m = model.w.data  # Pendiente
+    b = model.b.data  # Intersección en y
+
+    # Crear valores de x
+    #x = np.linspace(-10, 10, 100)  # 100 puntos entre -10 y 10
+    x_ = xTest_norm 
+
+    # Calcular los valores de y según la ecuación de la recta
+    y_ = m * x_ + b
+
+    # Graficar la recta
+    plt.scatter(xTest_norm, yTest_norm, color='orange', label='Datos de prueba')
+    plt.plot(x_, y_, color='red', label=f'y = {m}x + {b}')
+    plt.title('Graficar una Recta')
+    plt.xlabel('x')
+    plt.ylabel('y')
+    #plt.axhline(0, color='black',linewidth=0.5, ls='--')  # Línea horizontal en y=0
+    #plt.axvline(0, color='black',linewidth=0.5, ls='--')  # Línea vertical en x=0
+    #plt.grid(color = 'gray', linestyle = '--', linewidth = 0.5)  # Cuadrícula
+    plt.legend()
+    #plt.xlim(-10, 10)  # Límites del eje x
+    #plt.ylim(-10, 10)  # Límites del eje y
+    plt.show()
+
+    ##Graficar Losses
+    losses_ = [l.data for l in losses]
+    plt.plot(losses_, color='blue', label='Pérdida (Loss)')
+    plt.title('Pérdida durante el entrenamiento')
+    plt.xlabel('Épocas')
+    plt.ylabel('Pérdida')
+    plt.legend()
+    plt.show()
+
+#linearRegression_Value()
+
+
+#TODO:
+loss = nn.MSELoss()
+input = torch.randn(3, 5, requires_grad=True)
+target = torch.randn(3, 5)
+output = loss(input, target)
+print(type(output))
+output.backward()
+print(input.grad)
 
