@@ -78,7 +78,7 @@ class Value:
         return x.reshape(a,b)
 
     def backward(self):
-
+        #print("hi")
         # topological order all of the children in the graph
         topo = []
         visited = set()

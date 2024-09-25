@@ -112,12 +112,32 @@ class MSELoss():
         :return: Gradiente de la pérdida
         """
         n = self.y_true.shape[0]
+        print(n)
         # Gradiente: -2 * (y_true - y_pred) / n
-        return -2 * (self.y_true - self.y_pred) / n
+        return 2 * (self.y_pred - self.y_true) / n
 
 
     def __repr__(self):
         return("MSELoss()")
+
+
+class _MSELoss():
+    def forward(self, y_pred, y_true):
+        #todo: is istance and isnt istance
+        #y_true = np.array(y_true.data)
+        #y_pred = np.array(y_pred.data)
+        #output = np.mean((y_true-y_pred)**2)
+        output = sum((y_pred[i] - y_true[i]) ** 2 for i in range(len(y_pred))) / len(y_pred)
+        #output = Value(output)
+        return output 
+    
+    def __call__(self, y_true, y_pred):
+        return self.forward(y_pred, y_true)
+
+    def __repr__(self):
+        return("MSELoss()")
+
+
 
 def loss_example():
     x, y = make_regression(n_samples=10, n_features=1, noise=10, random_state=0)
@@ -302,6 +322,7 @@ def linearRegression_Value():
     #patience_counter = 0
     #patience = 10
     #best_loss = float('inf')
+    criterion = _MSELoss()
 
     # Entrenamiento
     for epoch in range(epochs):
@@ -315,7 +336,8 @@ def linearRegression_Value():
         predictions = np.array([model.forward(x) for x in inputs])
 
         # Calcular pérdida
-        loss = mse_loss(predictions, labels)
+        #loss = mse_loss(predictions, labels) #original
+        loss = criterion(predictions, labels)
         losses.append(loss)
 
         # Backward pass
@@ -387,12 +409,40 @@ def linearRegression_Value():
 #linearRegression_Value()
 
 
-#TODO:
-loss = nn.MSELoss()
-input = torch.randn(3, 5, requires_grad=True)
-target = torch.randn(3, 5)
-output = loss(input, target)
-print(type(output))
-output.backward()
-print(input.grad)
 
+
+#TODO:
+def pytorch_loss_example():
+    #https://pytorch.org/docs/stable/generated/torch.nn.MSELoss.html
+    loss = nn.MSELoss()
+    input = torch.randn(3, 5, requires_grad=True)
+    print("input:")
+    print(input)
+    target = torch.randn(3, 5)
+    print("target:")
+    print(target)
+    output = loss(input, target)
+    print("output:")
+    print(type(output))
+    print(output)
+    print("backward():")
+    output.backward()
+    print(input.grad)
+    print(target.grad) #None
+    np_input = input.detach().numpy()
+    print(np_input)
+    input_v = Value(np_input)
+    print(input_v)
+    target_v = Value(target.detach().numpy())
+    print(target_v)
+    
+    criterion_v = MSELoss()
+    output_v = criterion_v(input_v, target_v)
+    output_v = Value(output_v)
+    print(output_v) 
+    output_v.backward()
+    print(input_v.grad)
+    
+
+
+pytorch_loss_example()
