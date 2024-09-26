@@ -52,6 +52,28 @@ class Value:
         out._backward = _backward
 
         return out
+    
+    def tanh(self):
+        x = self.data
+        t = (math.exp(2*x) - 1)/(math.exp(2*x) + 1)
+        out = Value(t, (self, ), 'tanh')
+    
+        def _backward():
+          self.grad = (1 - t**2)*out.grad
+        out._backward = _backward
+    
+        return out
+
+    def sigmoid(self):
+        x = self.data
+        t = 1 / (1 + math.exp(-self.data))
+        out = Value(t, (self,), 'sigmoid')
+        #print("here:",out) 
+        def _backward():            
+            self.grad = (t*(1-t))*out.grad
+        out._backward = _backward
+
+        return out
 
     # add exp() for check.py
     def exp(self):

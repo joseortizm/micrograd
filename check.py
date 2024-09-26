@@ -34,11 +34,19 @@ def readme_example():
 def simple_example():
     x = Value(2.0)
     y = Value(4.0)
-    z = x*y  
+    z = x*y
+    s = z.sigmoid()
+    s.backward()
+    print('s:', s)
+    print('s.grad:', s.grad)
     print('z.grad:', z.grad)
-    z.backward()
     print('x.grad:', x.grad)
     print('y.grad:', y.grad)
+
+
+simple_example()
+
+
 
 def check_example():
     # inputs x1,x2
@@ -445,4 +453,4 @@ def pytorch_loss_example():
     
 
 
-pytorch_loss_example()
+#pytorch_loss_example()
